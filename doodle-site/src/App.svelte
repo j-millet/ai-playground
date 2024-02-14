@@ -91,9 +91,10 @@
 
 <main>
 	
-	<h3 style="color: rgb({255-perc*255},{perc*255},10)">{display_text}</h3>
+	<h2 style="color: rgb({255-perc*255},{perc*255},10)">{display_text}</h2>
 	<canvas on:mousedown={startDraw} on:mouseup={endDraw} on:mouseout={endDraw} on:blur={endDraw} on:mousemove={updateCoordinates} bind:this={canvas}></canvas>
 	<div><button on:click={clearCanvas}>CLEAR</button></div>
+	<p>'marker', 'matches', 'megaphone', 'mermaid', 'microphone', 'microwave', 'monkey', 'moon', 'mosquito', 'motorbike'</p>
 </main>
 
 <style>
