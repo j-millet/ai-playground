@@ -1,7 +1,6 @@
 <script>
 	import * as tf from '@tensorflow/tfjs';
 
-	export let name;
 	export let canvas;
 	
 	let drawing = false;
@@ -29,7 +28,6 @@
 		let currRow = [];
 		for(let i = 0; i <= 96*96; i += 1){
 			if(i%96 == 0 && i > 0){
-				console.log("yea");
 				matrix.push(currRow);
 				currRow = [];
 			}
@@ -119,7 +117,7 @@
 		color:aliceblue;
 	}
 
-	h1 {
+	h2 {
 		text-transform: uppercase;
 		font-size: 4em;
 		font-weight: 100;
