@@ -2,8 +2,9 @@
 	import * as tf from '@tensorflow/tfjs';
 	import * as utils from './utils.js';
 
-	tf.ENV.set('WEBGL_PACK', false)
-
+	const MODEL_IMAGE_WIDTH = 96;
+	const MODEL_IMAGE_HEIGHT = 96;
+	const MODEL_IMAGE_CHANNELS = 1;
 	let canvas;
 	let dummyCanvas;
 	
@@ -59,7 +60,7 @@
 	async function init(modelPromise){
 		await modelPromise.then(function (res){
 			tf.tidy(() => {
-				const pred = res.predict(tf.zeros([1,96,96,1])); //initial prediction of a zero tensor to cache the model weights
+				const pred = res.predict(tf.zeros([1,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT,MODEL_IMAGE_CHANNELS])); //initial prediction of a zero tensor to cache the model weights
 				pred.dataSync();
 				pred.dispose();
 			});
@@ -90,8 +91,8 @@
 			dctx.stroke();
 		}
 	}
-	async function getScaledImageDataOfContent(x_points,y_points){
-		//scale points to 96x96 grid
+	async function getScaledImageDataOfContent(x_points,y_points,width,height){
+		//scale points
 		let x_points_cpy = [...x_points]
 		let y_points_cpy = [...y_points]
 
@@ -104,21 +105,20 @@
 		let max_rect = Math.max(max_x,max_y)
 		
 		for(let i = 0; i < y_points.length;i++){
-			x_points_cpy[i] = x_points[i] != null? Math.round(((x_points[i]-min_x)/max_rect) * (96-2*imageMatrixPadPX)+imageMatrixPadPX): null;
-			y_points_cpy[i] = y_points[i] != null? Math.round(((y_points[i]-min_y)/max_rect) * (96-2*imageMatrixPadPX)+imageMatrixPadPX): null;
+			x_points_cpy[i] = x_points[i] != null? Math.round(((x_points[i]-min_x)/max_rect) * (width-2*imageMatrixPadPX)+imageMatrixPadPX): null;
+			y_points_cpy[i] = y_points[i] != null? Math.round(((y_points[i]-min_y)/max_rect) * (height-2*imageMatrixPadPX)+imageMatrixPadPX): null;
 		}
 	
-    	dummyCanvas.width = 96;
-    	dummyCanvas.height = 96;
+    	dummyCanvas.width = width;
+    	dummyCanvas.height = height;
 
     	await drawOnCanvas(dummyCanvas,x_points_cpy,y_points_cpy);
 
-    	const imdata = dummyCanvas.getContext("2d").getImageData(0,0,96,96);
+    	const imdata = dummyCanvas.getContext("2d").getImageData(0,0,dummyCanvas.width,dummyCanvas.height);
     	return imdata;
 	}
 
-	async function predictWithModel(){
-		const imdata = await getScaledImageDataOfContent(x_points,y_points)
+	function imageDataToNormalizedImageMatrix(imdata){
 		let matrix = [];
 		let currRow = [];
 		for(let i = 0; i <= imdata.height*imdata.width; i += 1){
@@ -128,8 +128,13 @@
 			}
 			currRow.push([parseFloat(imdata.data[i*4+3])/255]);
 		}
+		return matrix;
+	}
 
-		const tensor = tf.tensor([matrix]); // put matrix into another array, because batches
+	async function predictWithModel(){
+		const imdata = await getScaledImageDataOfContent(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT)
+
+		const tensor = tf.tensor([imageDataToNormalizedImageMatrix(imdata)]); // put matrix into another array, because batches
 		model.then(function (res){
 			const pred = tf.tidy(() => {
 				return res.predict(tensor).dataSync();
@@ -151,7 +156,7 @@
 		for(const l of labels){
 			clearCanvas();
 			wantedLabel = l;
-			secondsLeft = 1;
+			secondsLeft = 15;
 			while (secondsLeft>0)
 			{
 				if (label == wantedLabel && perc > 0.65){
@@ -178,7 +183,7 @@
 		ctx = canvas.getContext("2d");
 		ctx.fillStyle = "graphite";
 		ctx.strokeStyle= "graphite";
-		ctx.lineWidth = Math.min(canvas.width,canvas.height) * 1/96;
+		ctx.lineWidth = Math.min(canvas.width,canvas.height) * 1/100;
 	}
 
 	function updateCoordinates(event) {
@@ -218,8 +223,14 @@
 		x_points = [];
 		y_points = [];
 		ctx.clearRect(0,0,canvas.width,canvas.height);
+		perc=0.0;
 	}
 
+	function handleCanvasClick(event){
+		if(event.buttons == 1 && gameState == 1){
+			startDraw();
+		}
+	}
 	function startDraw(){
 		drawing = true;
 	}
@@ -245,70 +256,124 @@
 </script>
 
 <main>
-	<div id="drawing">
-		<h2 style="color: rgb({255-perc*255},{perc*255},10)">{displayText}</h2>
-		{#await init(model)}
-			<p>Loading...</p>
-		{:then value}
-			<canvas id="drawing-canvas" on:mousedown={startDraw} on:mouseup={endDraw} on:mouseout={endDraw} on:blur={endDraw} on:mousemove={updateCoordinates} bind:this={canvas}></canvas>
-			<div><button on:click={clearCanvas}>CLEAR</button></div>
-		{/await}
+	<canvas id = "dummy-canvas" bind:this={dummyCanvas}></canvas>
+	{#await init(model)}
+	<p>Loading...</p>
+	{:then value}
+	<div id="top-controls">
+		
+		{#if gameState == 1}
+		<div id="top-text">
+			<div><h2>{assignmentText}</h2></div>
+			<div><p>{timerText}</p></div>
+		</div>
+		<div id="button-div"><button on:click={clearCanvas}>CLEAR</button></div>
+		{:else}
+		<div></div>
+		{/if}
+		
 	</div>
+	<canvas id="drawing-canvas" on:mousedown={handleCanvasClick} on:mouseup={endDraw} on:mouseout={endDraw} on:blur={endDraw} on:mousemove={updateCoordinates} bind:this={canvas}></canvas>
 	<div id="controls">
-		{#if gameState == 0}
-		<p></p>
-		{:else if gameState == 1}
-		<h2>{assignmentText}</h2>
-		<p>{timerText}</p>
-		<h2 style="font-size: 3em;">What I see:</h2>
-		<canvas id = "dummy-canvas" bind:this={dummyCanvas}></canvas>
-		{:else if gameState == 2}
+		<h2 style="color: rgb({255-perc*255},{perc*255},10)">{displayText}</h2>
+	</div>
 
-		<p>The ai guessed {correct}/{imagesToDraw} drawings!</p>
+	{#if gameState == 2}
+	<div id="summary">
+		<h2>The AI guessed {correct}/{imagesToDraw} of your drawings!</h2>
 		<div id="drawings-showcase-container">
 			{#each guesses as guess}
 			<div class="drawings-showcase-single">
 				<canvas use:loadImdata={guess.imdata} style="background-color:aliceblue;"></canvas>
-				<p>{map[guess.label]} - {guess.guessed? "Correct":"Incorrect"}</p>
+				<p style="color:{guess.guessed? "green":"red"}">{map[guess.label]} {guess.guessed? "✓":"✗"}</p>
 			</div>	
 			{/each}
 		</div>
-		<button on:click={mainLoop}>Play Again</button>
-		{/if}
+		<div><button on:click={mainLoop}>Play Again</button></div>
 	</div>
-	
+	{/if}
+	{/await}
 </main>
 
 <style>
 	main {
-		display: flex;
-		flex-direction: row;
+		display: contents;
 		text-align: center;
 		padding:0px;
 		max-width: 240px;
 		margin: 0;
 		background-color: rgb(26, 34, 34);
+		overflow: hidden;
 	}
-	#drawing{
-		max-width: 68%;
-		min-width: 68%;
+	#summary{
+		position: fixed;
+		top: 50%;
+  		left: 50%;
+
+		max-width: 40%;
+		min-width: 40%;
+		max-height: 90%;
+		min-height: 90%;
+
+		background-color: bisque;
+		border: 0.5rem outset grey;
+		border-radius: 2rem;
+
+		transform: translate(-50%, -50%);
+
+		display: flex;
+		flex-direction: column;
+		justify-content: space-around;
+		align-items: center;
+		
+		
+	}
+	#summary p{
+		text-transform: capitalize;
+	}
+	#top-controls{
+    	display: flex;
+    	flex-direction: row;
+		justify-content: center;
+    	align-items: center;    
+    	position: absolute;
+    	max-width: 100%;
+    	min-width: 100%;
+    	max-height: 10%;
+    	min-height: 10%;
+	}
+
+	#button-div{
+		max-width: 6%;
+		min-width: 6%;
+		
+	}
+
+	#top-text{
+		flex:1;
+		padding-left: 6%;
 	}
 	#controls{
-		padding: 0.5rem;
-		max-width: 30%;
-		min-width: 30%;
+    	position: absolute;	
+
+		display: flex;
+    	flex-direction: row;
+    	justify-content: center;
+    	align-items: center;
+    	transform: translate(0%,-100%);
+    	max-width: 100%;
+    	min-width: 100%;
+    	max-height: 10%;
+    	min-height: 10%;
 	}
 	#drawing-canvas{
 		width: 100%;
-		border-radius: 2rem;
-		background-image: url('https://wiobyrne.com/wp-content/uploads/2013/03/Natural-Paper-Background-Texture-HD.jpg');
+		height: 100%;
+		background-color:rgb(255, 248, 240);
 		
 	}
 	#dummy-canvas{
-		width: 288px;
-		height: 288px;
-		border: 2px solid orange;
-		background-image: url('https://wiobyrne.com/wp-content/uploads/2013/03/Natural-Paper-Background-Texture-HD.jpg');
+		display: none;
 	}
 
 	#drawings-showcase-container{
@@ -323,17 +388,20 @@
 	}
 	:global(body){
 		background-color: rgb(26, 34, 34);
+		display: contents;
+		
 	}
 
 	p{
-		color:aliceblue;
+		color:rgb(30,30,30);
 	}
 
 	h2 {
 		text-transform: uppercase;
-		font-size: 3em;
-		font-weight: 100;
-		color:aliceblue;
+		font-size: 2em;
+		font-weight: 200;
+		font-family: com;
+		color:rgb(30,30,30);
 	}
 
 	@media (min-width: 640px) {
