@@ -2,8 +2,8 @@
 	import * as tf from '@tensorflow/tfjs';
 	import * as utils from './utils.js';
 
-	const MODEL_IMAGE_WIDTH = 96;
-	const MODEL_IMAGE_HEIGHT = 96;
+	const MODEL_IMAGE_WIDTH = 64;
+	const MODEL_IMAGE_HEIGHT = 64;
 	const MODEL_IMAGE_CHANNELS = 1;
 	let canvas;
 	let dummyCanvas;
@@ -41,7 +41,11 @@
 	let guesses = []
 
 
-	let map = ['a marker', 'matches', 'a megaphone', 'a mermaid', 'a microphone', 'a microwave', 'a monkey', 'the moon', 'a mosquito', 'a motorbike','a hospital', 'a hot air balloon', 'a hot dog', 'a hot tub', 'an hourglass', 'a house plant', 'a house', 'a hurricane', 'some ice cream', 'a jacket'];
+	let map = ['apple', 'arm', 'asparagus', 'axe', 'backpack', 'banana', 'bandage', 'barn', 'baseball bat', 'baseball',
+           'bench', 'bicycle', 'binoculars', 'bird', 'birthday cake', 'blackberry', 'blueberry', 'book', 'boomerang', 'bottlecap',
+           'bush', 'butterfly', 'cactus', 'cake', 'calculator', 'calendar', 'camel', 'camera', 'camouflage', 'campfire',
+           'chair', 'chandelier', 'church', 'circle', 'clarinet', 'clock', 'cloud', 'coffee_cup', 'compass', 'computer',
+           'diamond', 'dishwasher', 'diving_board', 'dog', 'dolphin', 'donut', 'door', 'dragon', 'dresser', 'drill'];
 	$: displayText = utils.descriptionText(label,perc,map);
 
 	$: assignmentText = `Try to draw ${map[wantedLabel]}`;
@@ -51,7 +55,7 @@
 	
 
 	async function loadModelFromSource(){
-    	const model = await tf.loadLayersModel('https://raw.githubusercontent.com/j-millet/ai-playground/master/doodle-detection/models/tfjs-models/20obj/model.json');
+    	const model = await tf.loadLayersModel('https://raw.githubusercontent.com/j-millet/ai-playground/master/doodle-detection/models/tfjs-models/50obj/model.json');
     	return model;
 	}
 	
@@ -108,10 +112,10 @@
 			x_points_cpy[i] = x_points[i] != null? Math.round(((x_points[i]-min_x)/max_rect) * (width-2*imageMatrixPadPX)+imageMatrixPadPX): null;
 			y_points_cpy[i] = y_points[i] != null? Math.round(((y_points[i]-min_y)/max_rect) * (height-2*imageMatrixPadPX)+imageMatrixPadPX): null;
 		}
-	
+		
     	dummyCanvas.width = width;
     	dummyCanvas.height = height;
-
+		console.log(width,height,max_rect)
     	await drawOnCanvas(dummyCanvas,x_points_cpy,y_points_cpy);
 
     	const imdata = dummyCanvas.getContext("2d").getImageData(0,0,dummyCanvas.width,dummyCanvas.height);
@@ -162,13 +166,13 @@
 				if (label == wantedLabel && perc > 0.65){
 					correct += 1;
 					secondsLeft = -100;
-					guesses = [...guesses,{"imdata":await getScaledImageDataOfContent(x_points,y_points),"label":l,"guessed":true}]
+					guesses = [...guesses,{"imdata":await getScaledImageDataOfContent(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT),"label":l,"guessed":true}]
 				}
 				await delay(1000);
 				secondsLeft -= 1;
 			}
 			if(secondsLeft > -100){
-				guesses = [...guesses,{"imdata":await getScaledImageDataOfContent(x_points,y_points),"label":l,"guessed":false}];
+				guesses = [...guesses,{"imdata":await getScaledImageDataOfContent(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT),"label":l,"guessed":false}];
 			}
 		}
 		clearCanvas();
@@ -248,8 +252,9 @@
 	}
 
 	const loadImdata = (canvas, imdata) =>{
-		canvas.height = 96;
-		canvas.width = 96;
+		canvas.height = MODEL_IMAGE_HEIGHT;
+		canvas.width = MODEL_IMAGE_WIDTH;
+		
 		canvas.getContext("2d").putImageData(imdata,0,0);
 	}
 	
@@ -385,6 +390,12 @@
 		max-width: 50%;
  		min-width: 50%;
 		
+	}
+	.drawings-showcase-single canvas{
+		height: 8rem;
+		width: 8rem;
+		border-radius: 1rem;
+		border: 0.5rem solid aliceblue;
 	}
 	:global(body){
 		background-color: rgb(26, 34, 34);
