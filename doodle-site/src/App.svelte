@@ -38,7 +38,7 @@
 
 	let correct = 0;
 	const imagesToDraw = 6;
-	const secondsToDraw = 15;
+	const secondsToDraw = 30;
 	let guesses = []
 
 
@@ -399,6 +399,7 @@
 		display: flex;
 		flex-direction: row;
 		flex-wrap: wrap;
+		width: 80%;
 	}
 	.drawings-showcase-single{
 		max-width: 50%;
@@ -406,8 +407,7 @@
 		
 	}
 	.drawings-showcase-single canvas{
-		height: 8rem;
-		width: 8rem;
+		width: 40%;
 		border-radius: 1rem;
 		border: 0.5rem solid aliceblue;
 	}
