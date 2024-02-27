@@ -38,8 +38,11 @@
 
 	let correct = 0;
 	const imagesToDraw = 6;
+	const secondsToDraw = 15;
 	let guesses = []
 
+
+	const showcaseDrawingSpeed = 500;
 
 	let map = [
            'apple', 'arm', 'asparagus', 'axe', 'backpack', 'banana', 'bandage', 'barn', 'baseball bat', 'baseball',
@@ -81,7 +84,6 @@
 	}
 	async function drawOnCanvas(canvas,x_points,y_points,delayMS=0){
 		const dctx = canvas.getContext("2d");
-
 		dctx.lineWidth = 2;
 		dctx.strokeStyle= "black";
 
@@ -99,9 +101,11 @@
 			dctx.lineTo(x_points[i+1],y_points[i+1]);
 			dctx.lineCap = 'round';
 			dctx.stroke();
+			await delay(delayMS);
 		}
 	}
-	async function getScaledImageDataOfContent(x_points,y_points,width,height){
+
+	function scaledPoints(x_points,y_points,width,height){
 		//scale points
 		let x_points_cpy = [...x_points]
 		let y_points_cpy = [...y_points]
@@ -118,11 +122,16 @@
 			x_points_cpy[i] = x_points[i] != null? Math.round(((x_points[i]-min_x)/max_rect) * (width-2*imageMatrixPadPX)+imageMatrixPadPX): null;
 			y_points_cpy[i] = y_points[i] != null? Math.round(((y_points[i]-min_y)/max_rect) * (height-2*imageMatrixPadPX)+imageMatrixPadPX): null;
 		}
+
+		return {"x":x_points_cpy,"y":y_points_cpy};
+	}
+
+	async function getScaledImageDataOfContent(x_points,y_points,width,height){
+		let scaled = scaledPoints(x_points,y_points,width,height);
 		
     	dummyCanvas.width = width;
     	dummyCanvas.height = height;
-		console.log(width,height,max_rect)
-    	await drawOnCanvas(dummyCanvas,x_points_cpy,y_points_cpy);
+    	await drawOnCanvas(dummyCanvas,scaled.x,scaled.y);
 
     	const imdata = dummyCanvas.getContext("2d").getImageData(0,0,dummyCanvas.width,dummyCanvas.height);
     	return imdata;
@@ -166,19 +175,19 @@
 		for(const l of labels){
 			clearCanvas();
 			wantedLabel = l;
-			secondsLeft = 15;
+			secondsLeft = secondsToDraw;
 			while (secondsLeft>0)
 			{
 				if (label == wantedLabel && perc > 0.65){
 					correct += 1;
 					secondsLeft = -100;
-					guesses = [...guesses,{"imdata":await getScaledImageDataOfContent(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT),"label":l,"guessed":true}]
+					guesses = [...guesses,{"points":scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT),"label":l,"guessed":true}]
 				}
 				await delay(1000);
 				secondsLeft -= 1;
 			}
 			if(secondsLeft > -100){
-				guesses = [...guesses,{"imdata":await getScaledImageDataOfContent(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT),"label":l,"guessed":false}];
+				guesses = [...guesses,{"points":scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT),"label":l,"guessed":false}];
 			}
 		}
 		clearCanvas();
@@ -257,11 +266,10 @@
 		predictWithModel()
 	}
 
-	const loadImdata = (canvas, imdata) =>{
+	const handleShowcaseCanvas = (canvas,points) =>{
 		canvas.height = MODEL_IMAGE_HEIGHT;
 		canvas.width = MODEL_IMAGE_WIDTH;
-		
-		canvas.getContext("2d").putImageData(imdata,0,0);
+		drawOnCanvas(canvas,points.x,points.y,parseInt(1000/showcaseDrawingSpeed));
 	}
 	
 </script>
@@ -284,7 +292,7 @@
 		{/if}
 		
 	</div>
-	<canvas id="drawing-canvas" on:mousedown={handleCanvasClick} on:mouseup={endDraw} on:mouseout={endDraw} on:blur={endDraw} on:mousemove={updateCoordinates} bind:this={canvas}></canvas>
+	<canvas id="drawing-canvas" on:resize={clearCanvas} on:mousedown={handleCanvasClick} on:mouseup={endDraw} on:mouseout={endDraw} on:blur={endDraw} on:mousemove={updateCoordinates} bind:this={canvas}></canvas>
 	<div id="controls">
 		<h2 style="color: rgb({255-perc*255},{perc*255},10)">{displayText}</h2>
 	</div>
@@ -295,7 +303,7 @@
 		<div id="drawings-showcase-container">
 			{#each guesses as guess}
 			<div class="drawings-showcase-single">
-				<canvas use:loadImdata={guess.imdata} style="background-color:aliceblue;"></canvas>
+				<canvas use:handleShowcaseCanvas={guess.points} style="background-color:aliceblue;"></canvas>
 				<p style="color:{guess.guessed? "green":"red"}">{map[guess.label]} {guess.guessed? "✓":"✗"}</p>
 			</div>	
 			{/each}
