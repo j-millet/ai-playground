@@ -1,6 +1,7 @@
 <script>
 	import * as tf from '@tensorflow/tfjs';
 	import * as utils from './utils.js';
+	import * as imageUtils from './imageUtils.js';
 
 	const MODEL_IMAGE_WIDTH = 64;
 	const MODEL_IMAGE_HEIGHT = 64;
@@ -45,16 +46,18 @@
 	const showcaseDrawingSpeed = 500;
 
 	let map = [
-           'apple', 'arm', 'asparagus', 'axe', 'backpack', 'banana', 'bandage', 'barn', 'baseball bat', 'baseball',
-           'bench', 'bicycle', 'binoculars', 'bird', 'birthday cake', 'blackberry', 'blueberry', 'book', 'boomerang', 'bottlecap',
-           'bush', 'butterfly', 'cactus', 'cake', 'calculator', 'calendar', 'camel', 'camera', 'camouflage', 'campfire',
-           'chair', 'chandelier', 'church', 'circle', 'clarinet', 'clock', 'cloud', 'coffee_cup', 'compass', 'computer',
-           'diamond', 'dishwasher', 'diving_board', 'dog', 'dolphin', 'donut', 'door', 'dragon', 'dresser', 'drill',
-           'harp', 'hat', 'headphones', 'hedgehog', 'helicopter', 'helmet', 'hexagon', 'hockey_puck', 'hockey_stick', 'horse',
-           'hospital', 'hot_air_balloon', 'hot_dog', 'hot_tub', 'hourglass', 'house_plant', 'house', 'hurricane', 'ice_cream', 'jacket',
-           'paper_clip', 'parachute', 'parrot', 'passport', 'peanut', 'pear', 'peas', 'pencil', 'penguin', 'piano',
-           'popsicle', 'postcard', 'potato', 'power_outlet', 'purse', 'rabbit', 'raccoon', 'radio', 'rain', 'rainbow',
-           'trombone', 'truck', 'trumpet', 'umbrella', 'underwear', 'van', 'vase', 'violin', 'washing_machine', 'watermelon'];
+		'apple', 'arm', 'asparagus', 'axe', 'backpack', 'banana', 'bandage', 'barn', 'baseball bat', 'baseball',
+        'bench', 'bicycle', 'binoculars', 'bird', 'birthday cake', 'blackberry', 'blueberry', 'book', 'boomerang', 'bottlecap',
+        'bush', 'butterfly', 'cactus', 'cake', 'calculator', 'calendar', 'camel', 'camera', 'camouflage', 'campfire',
+        'chair', 'chandelier', 'church', 'circle', 'clarinet', 'clock', 'cloud', 'coffee_cup', 'compass', 'computer',
+        'diamond', 'dishwasher', 'diving_board', 'dog', 'dolphin', 'donut', 'door', 'dragon', 'dresser', 'drill',
+        'harp', 'hat', 'headphones', 'hedgehog', 'helicopter', 'helmet', 'hexagon', 'hockey_puck', 'hockey_stick', 'horse',
+        'hospital', 'hot_air_balloon', 'hot_dog', 'hot_tub', 'hourglass', 'house_plant', 'house', 'hurricane', 'ice_cream', 'jacket',
+        'paper_clip', 'parachute', 'parrot', 'passport', 'peanut', 'pear', 'peas', 'pencil', 'penguin', 'piano',
+        'popsicle', 'postcard', 'potato', 'power_outlet', 'purse', 'rabbit', 'raccoon', 'radio', 'rain', 'rainbow',
+        'trombone', 'truck', 'trumpet', 'umbrella', 'underwear', 'van', 'vase', 'violin', 'washing_machine', 'watermelon'
+		];
+
 	$: displayText = utils.descriptionText(label,perc,map);
 
 	$: assignmentText = `Try to draw ${map[wantedLabel]}`;
@@ -64,7 +67,7 @@
 	
 
 	async function loadModelFromSource(){
-    	const model = await tf.loadLayersModel('https://raw.githubusercontent.com/j-millet/ai-playground/master/doodle-detection/models/tfjs-models/100obj/model.json');
+    	const model = await tf.loadLayersModel('https://raw.githubusercontent.com/j-millet/doodle-fun/master/doodle-detection/models/tfjs-models/100obj/model.json');
     	return model;
 	}
 	
@@ -105,29 +108,8 @@
 		}
 	}
 
-	function scaledPoints(x_points,y_points,width,height){
-		//scale points
-		let x_points_cpy = [...x_points]
-		let y_points_cpy = [...y_points]
-
-		let min_x = Math.min(...x_points.filter(e => {return e!==null}));
-		let max_x = Math.max(...x_points.filter(e => {return e!==null})) - min_x;
-
-		let min_y = Math.min(...y_points.filter(e => {return e!==null}));
-		let max_y = Math.max(...y_points.filter(e => {return e!==null})) - min_y;
-		
-		let max_rect = Math.max(max_x,max_y)
-		
-		for(let i = 0; i < y_points.length;i++){
-			x_points_cpy[i] = x_points[i] != null? Math.round(((x_points[i]-min_x)/max_rect) * (width-2*imageMatrixPadPX)+imageMatrixPadPX): null;
-			y_points_cpy[i] = y_points[i] != null? Math.round(((y_points[i]-min_y)/max_rect) * (height-2*imageMatrixPadPX)+imageMatrixPadPX): null;
-		}
-
-		return {"x":x_points_cpy,"y":y_points_cpy};
-	}
-
-	async function getScaledImageDataOfContent(x_points,y_points,width,height){
-		let scaled = scaledPoints(x_points,y_points,width,height);
+	async function getScaledImageDataOfContent(x_points,y_points,width,height,padPx=2){
+    	let scaled = imageUtils.scaledPoints(x_points,y_points,width,height,padPx);
 		
     	dummyCanvas.width = width;
     	dummyCanvas.height = height;
@@ -137,23 +119,10 @@
     	return imdata;
 	}
 
-	function imageDataToNormalizedImageMatrix(imdata){
-		let matrix = [];
-		let currRow = [];
-		for(let i = 0; i <= imdata.height*imdata.width; i += 1){
-			if(i%imdata.width == 0 && i > 0){
-				matrix.push(currRow);
-				currRow = [];
-			}
-			currRow.push([parseFloat(imdata.data[i*4+3])/255]);
-		}
-		return matrix;
-	}
-
 	async function predictWithModel(){
-		const imdata = await getScaledImageDataOfContent(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT)
+		const imdata = await getScaledImageDataOfContent(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT,imageMatrixPadPX)
 
-		const tensor = tf.tensor([imageDataToNormalizedImageMatrix(imdata)]); // put matrix into another array, because batches
+		const tensor = tf.tensor([imageUtils.imageDataToNormalizedImageMatrix(imdata)]); // put matrix into another array, because batches
 		model.then(function (res){
 			const pred = tf.tidy(() => {
 				return res.predict(tensor).dataSync();
@@ -181,13 +150,13 @@
 				if (label == wantedLabel && perc > 0.65){
 					correct += 1;
 					secondsLeft = -100;
-					guesses = [...guesses,{"points":scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT),"label":l,"guessed":true}]
+					guesses = [...guesses,{"points":imageUtils.scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT,imageMatrixPadPX),"label":l,"guessed":true}]
 				}
 				await delay(1000);
 				secondsLeft -= 1;
 			}
 			if(secondsLeft > -100){
-				guesses = [...guesses,{"points":scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT),"label":l,"guessed":false}];
+				guesses = [...guesses,{"points":imageUtils.scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT,imageMatrixPadPX),"label":l,"guessed":false}];
 			}
 		}
 		clearCanvas();
@@ -273,7 +242,9 @@
 	}
 	
 </script>
-
+<svelte:head>
+	<title>Doods</title>
+</svelte:head>
 <main>
 	<canvas id = "dummy-canvas" bind:this={dummyCanvas}></canvas>
 	{#await init(model)}
