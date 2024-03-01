@@ -2,13 +2,13 @@
 
 Currently the approach used is a fairly simple CNN trained on a limited dataset of 64x64 size final images, which might be expanded in the future.
 ### Network architecture so far:
-- Input(shape=input_shape)
-- Conv2D(16,(3,3),activation="relu")
-- MaxPooling2D(pool_size=(2,2),padding='valid')
-- Conv2D(16,(3,3),activation="relu")
-- MaxPooling2D(pool_size=(2,2),padding='valid')
-- Flatten()
-- Dense(512,activation="relu")
-- Dropout(0.4)
-- Dense(256,activation="relu")
+- Input(shape=input_shape),
+- Conv2D(16,(3,3),activation="relu"),
+- MaxPooling2D(pool_size=(2,2),padding='same'),
+- Conv2D(16,(3,3),activation="relu"),
+- MaxPooling2D(pool_size=(2,2),padding='same'),
+- Flatten(),
+- Dense(1024,activation="relu"),
+- Dropout(0.4),
+- Dense(256,activation="relu"),
 - Dense(num_outputs,activation="softmax")
