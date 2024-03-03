@@ -39,29 +39,29 @@
 
 	let correct = 0;
 	const imagesToDraw = 6;
-	const secondsToDraw = 30;
+	const secondsToDraw = 1;
 	let guesses = []
 
 
 	const showcaseDrawingSpeed = 500;
 
 	let map = [
-		'apple', 'arm', 'asparagus', 'axe', 'backpack', 'banana', 'bandage', 'barn', 'baseball bat', 'baseball',
-        'bench', 'bicycle', 'binoculars', 'bird', 'birthday cake', 'blackberry', 'blueberry', 'book', 'boomerang', 'bottlecap',
-        'bush', 'butterfly', 'cactus', 'cake', 'calculator', 'calendar', 'camel', 'camera', 'camouflage', 'campfire',
-        'chair', 'chandelier', 'church', 'circle', 'clarinet', 'clock', 'cloud', 'coffee_cup', 'compass', 'computer',
-        'diamond', 'dishwasher', 'diving_board', 'dog', 'dolphin', 'donut', 'door', 'dragon', 'dresser', 'drill',
-        'harp', 'hat', 'headphones', 'hedgehog', 'helicopter', 'helmet', 'hexagon', 'hockey_puck', 'hockey_stick', 'horse',
-        'hospital', 'hot_air_balloon', 'hot_dog', 'hot_tub', 'hourglass', 'house_plant', 'house', 'hurricane', 'ice_cream', 'jacket',
-        'paper_clip', 'parachute', 'parrot', 'passport', 'peanut', 'pear', 'peas', 'pencil', 'penguin', 'piano',
-        'popsicle', 'postcard', 'potato', 'power_outlet', 'purse', 'rabbit', 'raccoon', 'radio', 'rain', 'rainbow',
-        'trombone', 'truck', 'trumpet', 'umbrella', 'underwear', 'van', 'vase', 'violin', 'washing_machine', 'watermelon'
-		];
+    	'an apple', 'an arm', 'an asparagus', 'an axe', 'a backpack', 'a banana', 'a bandage', 'a barn', 'a baseball bat', 'a baseball',
+    	'a bench', 'a bicycle', 'binoculars', 'a bird', 'a birthday cake', 'a blackberry', 'a blueberry', 'a book', 'a boomerang', 'a bottlecap',
+    	'a bush', 'a butterfly', 'a cactus', 'a cake', 'a calculator', 'a calendar', 'a camel', 'a camera', 'camouflage', 'a campfire',
+    	'a chair', 'a chandelier', 'a church', 'a circle', 'a clarinet', 'a clock', 'a cloud', 'a coffee cup', 'a compass', 'a computer',
+    	'a diamond', 'a dishwasher', 'a diving board', 'a dog', 'a dolphin', 'a donut', 'a door', 'a dragon', 'a dresser', 'a drill',
+    	'a harp', 'a hat', 'headphones', 'a hedgehog', 'a helicopter', 'a helmet', 'a hexagon', 'a hockey puck', 'a hockey stick', 'a horse',
+    	'a hospital', 'a hot air balloon', 'a hot dog', 'a hot tub', 'an hourglass', 'a house plant', 'a house', 'a hurricane', 'an ice cream', 'a jacket',
+    	'a paper clip', 'a parachute', 'a parrot', 'a passport', 'a peanut', 'a pear', 'peas', 'a pencil', 'a penguin', 'a piano',
+    	'a popsicle', 'a postcard', 'a potato', 'a power outlet', 'a purse', 'a rabbit', 'a raccoon', 'a radio', 'rain', 'a rainbow',
+    	'a trombone', 'a truck', 'a trumpet', 'an umbrella', 'underwear', 'a van', 'a vase', 'a violin', 'a washing machine', 'a watermelon'
+		];	
 
 	$: displayText = utils.descriptionText(label,perc,map);
 
 	$: assignmentText = `Try to draw ${map[wantedLabel]}`;
-	$: timerText = `${secondsLeft}s left...`;
+	$: timerText = `${Math.round(secondsLeft)}s left...`;
 
 		
 	
@@ -145,23 +145,25 @@
 			clearCanvas();
 			wantedLabel = l;
 			secondsLeft = secondsToDraw;
+			let guessed = false;
 			while (secondsLeft>0)
 			{
 				if (label == wantedLabel && perc > 0.65){
 					correct += 1;
-					secondsLeft = -100;
-					guesses = [...guesses,{"points":imageUtils.scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT,imageMatrixPadPX),"label":l,"guessed":true}]
+					guessed = true;
+					guesses = [...guesses,{"points":imageUtils.scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT,imageMatrixPadPX),"label":l,"guessed":guessed}];
+					await delay(4000);
+					break;
 				}
-				await delay(1000);
-				secondsLeft -= 1;
+				await delay(100);
+				secondsLeft -= 0.1;
 			}
-			if(secondsLeft > -100){
-				guesses = [...guesses,{"points":imageUtils.scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT,imageMatrixPadPX),"label":l,"guessed":false}];
+			if(!guessed){
+				guesses = [...guesses,{"points":imageUtils.scaledPoints(x_points,y_points,MODEL_IMAGE_WIDTH,MODEL_IMAGE_HEIGHT,imageMatrixPadPX),"label":l,"guessed":guessed}];
 			}
 		}
 		clearCanvas();
 		gameState = 2;
-		console.log(guesses)
 	}
 
 	function setCanvasCTX(){
@@ -243,7 +245,10 @@
 	
 </script>
 <svelte:head>
-	<title>Doods</title>
+	<title>Doodles :)</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&display=swap" rel="stylesheet">
 </svelte:head>
 <main>
 	<canvas id = "dummy-canvas" bind:this={dummyCanvas}></canvas>
@@ -257,7 +262,7 @@
 			<div><h2>{assignmentText}</h2></div>
 			<div><p>{timerText}</p></div>
 		</div>
-		<div id="button-div"><button on:click={clearCanvas}>CLEAR</button></div>
+		<div id="button-div"><button on:click={clearCanvas}><h1>CLEAR</h1></button></div>
 		{:else}
 		<div></div>
 		{/if}
@@ -279,13 +284,14 @@
 			</div>	
 			{/each}
 		</div>
-		<div><button on:click={mainLoop}>Play Again</button></div>
+		<div><button on:click={mainLoop}><h1>Play Again</h1></button></div>
 	</div>
 	{/if}
 	{/await}
 </main>
 
 <style>
+	
 	main {
 		display: contents;
 		text-align: center;
@@ -294,6 +300,7 @@
 		margin: 0;
 		background-color: rgb(26, 34, 34);
 		overflow: hidden;
+		font-family: "Cabin Sketch", sans-serif;
 	}
 	#summary{
 		position: fixed;
@@ -320,6 +327,18 @@
 	}
 	#summary p{
 		text-transform: capitalize;
+	}
+
+	#summary h2{
+		font-size: 2rem;
+	}
+
+	button{
+    	background:none;
+    	border:none;
+    	margin:0;
+    	padding:0;
+    	cursor: pointer;
 	}
 	#top-controls{
     	display: flex;
@@ -372,6 +391,8 @@
 		flex-wrap: wrap;
 		width: 80%;
 	}
+
+	
 	.drawings-showcase-single{
 		max-width: 50%;
  		min-width: 50%;
@@ -390,13 +411,13 @@
 
 	p{
 		color:rgb(30,30,30);
+		font-family: sans-serif;
 	}
 
 	h2 {
 		text-transform: uppercase;
-		font-size: 2em;
+		font-size: 3em;
 		font-weight: 200;
-		font-family: com;
 		color:rgb(30,30,30);
 	}
 
