@@ -39,7 +39,7 @@
 
 	let correct = 0;
 	const imagesToDraw = 6;
-	const secondsToDraw = 1;
+	const secondsToDraw = 20;
 	let guesses = []
 
 
@@ -253,7 +253,7 @@
 <main>
 	<canvas id = "dummy-canvas" bind:this={dummyCanvas}></canvas>
 	{#await init(model)}
-	<p>Loading...</p>
+	<p>Loading model...</p>
 	{:then value}
 	<div id="top-controls">
 		

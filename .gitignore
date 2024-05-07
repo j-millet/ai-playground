@@ -1,3 +1,4 @@
 .history
-doodle-detection/dataset
+doodle-detection/dataset/images
+doodle-detection/dataset/*.h5
 logs
