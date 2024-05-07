@@ -67,7 +67,7 @@
 	
 
 	async function loadModelFromSource(){
-    	const model = await tf.loadLayersModel('https://raw.githubusercontent.com/j-millet/doodle-fun/master/doodle-detection/models/tfjs-models/100obj-v2/model.json');
+    	const model = await tf.loadLayersModel('https://raw.githubusercontent.com/j-millet/doodle-fun/master/doodle-detection/models/tfjs-models/100obj-v3/model.json');
     	return model;
 	}
 	
